@@ -1,0 +1,16 @@
+{
+  "name": "dashboard-data-scripts",
+  "version": "1.0.0",
+  "description": "Data fetching and processing scripts for Service Performance Dashboard",
+  "type": "module",
+  "scripts": {
+    "fetch": "node fetch_sheet.js",
+    "test": "node fetch_sheet.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "lastUpdated": "2026-01-11T20:28:13.636Z",
+  "rowCount": 82,
+  "dateRange": {
+    "min": "2025-12-01",
+    "max": "2026-01-10"
+  },
+  "dimensions": {
+    "categories": [
+      "Content Business"
+    ],
+    "markets": [
+      "Zimbabwe"
+    ],
+    "services": [
+      "YoGamezPro"
+    ],
+    "currencies": [
+      "USD",
+      "ZWG"
+    ]
+  }
+}
