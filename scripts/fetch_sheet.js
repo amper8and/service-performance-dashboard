@@ -138,7 +138,13 @@ function parseAndCleanData(csvText, skipRows = []) {
     // Parse numeric values
     const parseNum = (val) => {
       if (val === '' || val === null || val === undefined) return 0;
-      const num = parseFloat(String(val).replace(/,/g, ''));
+      // Remove currency symbols ($, R), spaces, commas, and any non-numeric chars except . and -
+      const cleaned = String(val)
+        .replace(/[$R]/g, '')           // Remove currency symbols
+        .replace(/\s/g, '')             // Remove all whitespace
+        .replace(/,/g, '')              // Remove commas
+        .replace(/[^\d.-]/g, '');       // Remove any other non-numeric chars except . and -
+      const num = parseFloat(cleaned);
       return isNaN(num) ? 0 : num;
     };
     
