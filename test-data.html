@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard Data Test</h1>
+  <div id="results"></div>
+
+  <script>
+    async function testData() {
+      const results = document.getElementById('results');
+      
+      try {
+        // Load data
+        results.innerHTML += '<h2>Loading data...</h2>';
+        const response = await fetch('./data/data.json');
+        const data = await response.json();
+        
+        results.innerHTML += `<p class="success">✓ Loaded ${data.length} rows</p>`;
+        
+        // Show first row
+        results.innerHTML += '<h3>First Row (USD):</h3>';
+        const firstRow = data[0];
+        results.innerHTML += `<pre>${JSON.stringify(firstRow, null, 2)}</pre>`;
+        
+        // Show financial summary
+        results.innerHTML += '<h3>Financial Data Check:</h3>';
+        const dec1Data = data.filter(d => d.date === '2025-12-01');
+        results.innerHTML += `<p>Rows for 2025-12-01: ${dec1Data.length}</p>`;
+        
+        dec1Data.forEach(row => {
+          results.innerHTML += `
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+              <strong>Currency: ${row.currency}</strong><br>
+              Daily Revenue: ${row.dailyRevenue}<br>
+              Month Revenue: ${row.monthRevenue}<br>
+              Month Target: ${row.monthTarget}<br>
+              USD Rate: ${row.usdRate}<br>
+              USD/ZAR Rate: ${row.usdZarRate}<br>
+              Actual Run Rate: ${row.actualRunRate}<br>
+              Required Run Rate: ${row.requiredRunRate}
+            </div>
+          `;
+        });
+        
+        // Test aggregation
+        results.innerHTML += '<h3>Aggregation Test (2025-12-01, All currencies):</h3>';
+        const totalMTDRevenue = dec1Data.reduce((sum, row) => sum + row.monthRevenue, 0);
+        const totalTarget = dec1Data.reduce((sum, row) => sum + row.monthTarget, 0);
+        const percentToTarget = (totalMTDRevenue / totalTarget) * 100;
+        
+        results.innerHTML += `
+          <div style="margin: 10px 0; padding: 10px; background: #e8f5e9; border-radius: 5px;">
+            <strong>Aggregated Metrics:</strong><br>
+            Total MTD Revenue (ZAR): ${totalMTDRevenue.toLocaleString()}<br>
+            Total Month Target (ZAR): ${totalTarget.toLocaleString()}<br>
+            % to Target: ${percentToTarget.toFixed(2)}%<br>
+          </div>
+        `;
+        
+        results.innerHTML += '<p class="success">✓ All data checks passed!</p>';
+        
+      } catch (error) {
+        results.innerHTML += `<p class="error">✗ Error: ${error.message}</p>`;
+        console.error(error);
+      }
+    }
+    
+    testData();
+  </script>
+</body>
+</html>

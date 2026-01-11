@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+        .log { margin: 5px 0; padding: 5px; background: white; border-left: 3px solid #4CAF50; }
+        .error { border-left-color: #f44336; background: #ffebee; }
+        .warn { border-left-color: #ff9800; background: #fff3e0; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard JavaScript Debug</h1>
+    <div id="logs"></div>
+
+    <script>
+        const logs = document.getElementById('logs');
+        
+        function log(msg, type = 'log') {
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.textContent = new Date().toISOString().substr(11, 8) + ' - ' + msg;
+            logs.appendChild(div);
+            console[type](msg);
+        }
+
+        async function debugDashboard() {
+            log('Starting debug...');
+            
+            try {
+                // Test 1: Load data
+                log('Fetching data.json...');
+                const dataResp = await fetch('./data/data.json');
+                if (!dataResp.ok) throw new Error('Data fetch failed: ' + dataResp.status);
+                const data = await dataResp.json();
+                log(`✓ Loaded ${data.length} rows`);
+                
+                // Test 2: Check first row
+                log('First row: ' + JSON.stringify(data[0]).substr(0, 100) + '...');
+                log(`  monthRevenue: ${data[0].monthRevenue}`);
+                log(`  monthTarget: ${data[0].monthTarget}`);
+                
+                // Test 3: Load metadata
+                log('Fetching meta.json...');
+                const metaResp = await fetch('./data/meta.json');
+                const meta = await metaResp.json();
+                log(`✓ Loaded metadata, last updated: ${meta.lastUpdated}`);
+                
+                // Test 4: Filter to latest date
+                const latestDate = '2026-01-10';
+                const latestData = data.filter(d => d.date === latestDate);
+                log(`Latest date (${latestDate}): ${latestData.length} rows`);
+                
+                // Test 5: Calculate aggregates
+                const totalMTD = latestData.reduce((sum, row) => sum + row.monthRevenue, 0);
+                const totalTarget = latestData.reduce((sum, row) => sum + row.monthTarget, 0);
+                log(`  Total MTD Revenue: R ${totalMTD.toLocaleString()}`);
+                log(`  Total Month Target: R ${totalTarget.toLocaleString()}`);
+                log(`  % to Target: ${((totalMTD / totalTarget) * 100).toFixed(2)}%`);
+                
+                // Test 6: Load dashboard scripts
+                log('Loading data-utils.js...');
+                const script1 = document.createElement('script');
+                script1.src = './src/data-utils.js';
+                script1.onload = () => log('✓ data-utils.js loaded');
+                script1.onerror = () => log('✗ data-utils.js failed', 'error');
+                document.body.appendChild(script1);
+                
+                setTimeout(() => {
+                    log('Loading ui.js...');
+                    const script2 = document.createElement('script');
+                    script2.src = './src/ui.js';
+                    script2.onload = () => log('✓ ui.js loaded');
+                    script2.onerror = () => log('✗ ui.js failed', 'error');
+                    document.body.appendChild(script2);
+                    
+                    setTimeout(() => {
+                        log('Loading app.js...');
+                        const script3 = document.createElement('script');
+                        script3.src = './src/app.js';
+                        script3.onload = () => log('✓ app.js loaded');
+                        script3.onerror = () => log('✗ app.js failed', 'error');
+                        document.body.appendChild(script3);
+                    }, 500);
+                }, 500);
+                
+            } catch (error) {
+                log('✗ Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        // Capture all console messages
+        const origLog = console.log;
+        const origError = console.error;
+        const origWarn = console.warn;
+        
+        console.log = (...args) => {
+            log(args.join(' '));
+            origLog.apply(console, args);
+        };
+        
+        console.error = (...args) => {
+            log(args.join(' '), 'error');
+            origError.apply(console, args);
+        };
+        
+        console.warn = (...args) => {
+            log(args.join(' '), 'warn');
+            origWarn.apply(console, args);
+        };
+        
+        debugDashboard();
+    </script>
+</body>
+</html>
