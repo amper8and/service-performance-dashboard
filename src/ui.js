@@ -329,7 +329,7 @@ function renderRunRateChart(monthMetrics) {
 }
 
 /**
- * Render detail table
+ * Render detail table - Shows daily performance for the month up to selected date
  */
 function renderDetailTable(groups, filters) {
   const tableContainer = document.getElementById('detail-table');
@@ -339,22 +339,28 @@ function renderDetailTable(groups, filters) {
     return;
   }
   
-  // Calculate metrics for each group
-  const tableData = groups.map(group => {
-    const metrics = calculateDateMetrics(group.rows, filters.date);
+  // Get all rows from all groups (already filtered by current filters)
+  const allRows = groups.flatMap(g => g.rows);
+  
+  // Get all unique dates in the month up to the selected date
+  const allDates = [...new Set(allRows.map(r => r.date))].sort();
+  const selectedDateIndex = allDates.indexOf(filters.date);
+  const datesToShow = selectedDateIndex >= 0 ? allDates.slice(0, selectedDateIndex + 1) : allDates;
+  
+  if (datesToShow.length === 0) {
+    tableContainer.innerHTML = '<p class="no-data">No data available for selected month</p>';
+    return;
+  }
+  
+  // Calculate metrics for each date
+  const tableData = datesToShow.map(date => {
+    const metrics = calculateDateMetrics(allRows, date);
     
     if (!metrics) return null;
     
-    // Get latest MTD revenue in month
-    const monthMetrics = calculateMonthMetrics(group.rows, filters.month);
-    const latestMTD = monthMetrics.length > 0 ? monthMetrics[monthMetrics.length - 1].mtdRevenue : 0;
-    const targetVariance = metrics.monthTarget - latestMTD;
-    
     return {
-      category: group.category,
-      market: group.market,
-      service: group.service,
-      currency: group.currency,
+      date: date,
+      dayNumber: metrics.dayNumber,
       mtdRevenue: metrics.mtdRevenue,
       monthTarget: metrics.monthTarget,
       percentToTarget: metrics.percentToTarget,
@@ -363,20 +369,16 @@ function renderDetailTable(groups, filters) {
       totalBase: metrics.totalBase,
       netAddsToday: metrics.netAddsToday,
       dailyRevenueZAR: metrics.dailyRevenueZAR,
-      netAddsRevenueZAR: metrics.netAddsRevenueZAR,
-      latestMTD: latestMTD,
-      targetVariance: targetVariance
+      netAddsRevenueZAR: metrics.netAddsRevenueZAR
     };
   }).filter(Boolean);
   
   if (tableData.length === 0) {
-    tableContainer.innerHTML = '<p class="no-data">No data available for selected date</p>';
+    tableContainer.innerHTML = '<p class="no-data">No data available for selected period</p>';
     return;
   }
   
   // Build table HTML
-  const currencyColumn = filters.viewMode === 'construct' ? '<th data-sort="currency">Currency</th>' : '';
-  
   let html = `
     <div class="table-controls">
       <input type="text" id="table-search" placeholder="Search table..." class="search-input">
@@ -386,10 +388,10 @@ function renderDetailTable(groups, filters) {
       <table class="detail-table" id="data-table">
         <thead>
           <tr>
-            <th data-sort="category">Category</th>
-            <th data-sort="market">Market</th>
-            <th data-sort="service">Service</th>
-            ${currencyColumn}
+            <th data-sort="date">Date</th>
+            <th data-sort="dayNumber">Day</th>
+            <th data-sort="dailyRevenueZAR">Daily Revenue</th>
+            <th data-sort="netAddsRevenueZAR">Net Adds Rev</th>
             <th data-sort="mtdRevenue">MTD Revenue</th>
             <th data-sort="monthTarget">Month Target</th>
             <th data-sort="percentToTarget">% to Target</th>
@@ -397,8 +399,6 @@ function renderDetailTable(groups, filters) {
             <th data-sort="requiredRunRate">Required Run Rate</th>
             <th data-sort="totalBase">Total Base</th>
             <th data-sort="netAddsToday">Net Adds</th>
-            <th data-sort="dailyRevenueZAR">Revenue Today</th>
-            <th data-sort="targetVariance">Target Variance</th>
           </tr>
         </thead>
         <tbody>
@@ -408,23 +408,21 @@ function renderDetailTable(groups, filters) {
     const statusClass = getStatusColor(row.percentToTarget);
     const statusClassName = statusClass === 'green' ? 'status-good' : statusClass === 'amber' ? 'status-warning' : 'status-danger';
     
-    const currencyCell = filters.viewMode === 'construct' ? `<td>${row.currency}</td>` : '';
+    const runRateStatus = row.actualRunRate >= row.requiredRunRate ? 'status-good' : 'status-danger';
     
     html += `
       <tr>
-        <td>${row.category}</td>
-        <td>${row.market}</td>
-        <td>${row.service}</td>
-        ${currencyCell}
+        <td>${formatDate(row.date)}</td>
+        <td class="num">${row.dayNumber}</td>
+        <td class="num">${formatCurrency(row.dailyRevenueZAR)}</td>
+        <td class="num">${formatCurrency(row.netAddsRevenueZAR)}</td>
         <td class="num">${formatCurrency(row.mtdRevenue)}</td>
         <td class="num">${formatCurrency(row.monthTarget)}</td>
         <td class="num ${statusClassName}">${formatPercent(row.percentToTarget)}</td>
-        <td class="num">${formatCurrency(row.actualRunRate)}</td>
+        <td class="num ${runRateStatus}">${formatCurrency(row.actualRunRate)}</td>
         <td class="num">${formatCurrency(row.requiredRunRate)}</td>
         <td class="num">${formatNumber(row.totalBase)}</td>
         <td class="num">${formatNumber(row.netAddsToday)}</td>
-        <td class="num">${formatCurrency(row.dailyRevenueZAR)}</td>
-        <td class="num ${row.targetVariance < 0 ? 'status-good' : 'status-danger'}">${formatCurrency(row.targetVariance)}</td>
       </tr>
     `;
   });
